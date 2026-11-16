@@ -9,6 +9,36 @@ concurrency:
   group: mitv-home-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  upstream-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: candidate-source
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: d5a347302e3499771045f85a6e0a8317881525cf
+          path: upstream-source
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Collect unmodified upstream lint
+        working-directory: upstream-source
+        shell: bash
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
+          chmod +x gradlew
+          ./gradlew --no-daemon --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" -I ../candidate-source/tools/ci-lint-report.gradle :app:lintStandardRelease
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: upstream-lint
+          path: upstream-source/app/build/reports/lint-results-standardRelease.xml
+          retention-days: 14
+          if-no-files-found: error
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -28,11 +58,15 @@ jobs:
         shell: bash
         run: |
           "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
-      - name: Test, lint and assemble
+      - name: Test and assemble
         shell: bash
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" -PmitvHome=${{ matrix.mitv }} :app:testStandardReleaseUnitTest :app:lintStandardRelease :app:assembleStandardRelease
+          ./gradlew --no-daemon --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" -PmitvHome=${{ matrix.mitv }} :app:testStandardReleaseUnitTest :app:assembleStandardRelease
+      - name: Collect full lint report
+        shell: bash
+        run: |
+          ./gradlew --no-daemon --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" -PmitvHome=${{ matrix.mitv }} -I tools/ci-lint-report.gradle :app:lintStandardRelease
       - name: Verify candidate APK
         if: matrix.mitv
         shell: bash
@@ -68,3 +102,17 @@ jobs:
           path: candidate/
           retention-days: 30
           if-no-files-found: error
+  lint-regression:
+    needs: [upstream-lint, verify]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          path: reports
+      - name: Reject newly introduced lint errors
+        run: |
+          python3 tools/compare-lint.py reports/upstream-lint/lint-results-standardRelease.xml reports/test-reports-mitv-false/reports/lint-results-standardRelease.xml reports/test-reports-mitv-true/reports/lint-results-standardRelease.xml

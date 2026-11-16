@@ -38,8 +38,12 @@ private key is uploaded in the build artifacts.
 
 ## Build and verification
 
-GitHub Actions runs the upstream standard release unit tests and lint, then the
-same checks plus APK assembly with the MiTV property. Added identity tests cover
+GitHub Actions tests and assembles both identities. Full lint reports are compared
+against unmodified upstream commit `d5a347302e3499771045f85a6e0a8317881525cf`;
+pre-existing upstream lint errors are reported, and newly introduced errors fail
+the workflow. Release assembly still enforces the project's fatal API checks.
+The candidate is eligible for a TV trial only when ALL workflow jobs pass.
+Added identity tests cover
 HOME resolution, component class names, provider/account isolation, and updates.
 The artifact contains an APK, Android 9–11 dex metadata, checksums, manifest,
 signature verification, and build commit. Test reports are separate artifacts.

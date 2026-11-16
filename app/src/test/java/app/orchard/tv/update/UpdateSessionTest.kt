@@ -89,6 +89,13 @@ class UpdateSessionTest {
         Updates.testApk = File(app.cacheDir, "update-test.apk").apply { writeBytes(byteArrayOf(1, 2, 3)) }
 
         Updates.install(app)
+        if (BuildConfig.MITV_HOME) {
+            // A separately named build must reject the official updater before any session.
+            assertEquals(Updates.Install.Failed(Updates.Failure.NotOfficial), Updates.install)
+            assertTrue(installer.mySessions.isEmpty())
+            assertNull(shadowOf(app).nextStartedActivity)
+            return
+        }
         val deadline = System.nanoTime() + 10_000_000_000L
         while (Updates.install is Updates.Install.Downloading && System.nanoTime() < deadline) {
             shadowOf(Looper.getMainLooper()).idle()
