@@ -320,13 +320,6 @@
     <string name="kids_warn">%d мин қалды</string>
     <string name="kids_warn_break">%d минуттан кейін үзіліс</string>
 
-    <string name="st_focus_position">Фокус орны</string>
-    <string name="st_focus_position_middle">Ортада</string>
-    <string name="st_focus_position_custom">Таңдау</string>
-    <string name="st_focus_position_row">Фокус жолы</string>
-    <string name="st_focus_position_column">Фокус бағаны</string>
-    <string name="st_focus_position_row_value">%1$d-жол</string>
-    <string name="st_focus_position_column_value">%1$d-баған</string>
-    <string name="st_focus_position_hint">Іске қосылғанда және басты экранға оралғанда қолданбаны ашпай осы орын таңдалады. Жолды немесе бағанды таңдап, ауыстыру үшін OK басыңыз. Өзгерістер автоматты түрде сақталады.</string>
+    <string name="menu_default_focus">Фокус орны</string>
 </resources>
 

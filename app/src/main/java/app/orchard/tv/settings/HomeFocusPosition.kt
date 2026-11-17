@@ -23,8 +23,8 @@ data class HomeFocusPosition(val row: Int, val column: Int) {
 }
 
 /** An empty/missing custom slot falls back to Home's original focus policy. */
-internal fun homeEntryFocusIndex(count: Int, columns: Int, position: HomeFocusPosition?): Int? {
-    if (count <= 0 || columns <= 0) return null
+internal fun homeEntryFocusIndex(count: Int, columns: Int, position: HomeFocusPosition?, enabled: Boolean = true): Int? {
+    if (!enabled || count <= 0 || columns <= 0) return null
     if (position == null) return (minOf(count, columns) - 1) / 2
     if (position.column >= columns) return null
     val index = position.row.toLong() * columns + position.column

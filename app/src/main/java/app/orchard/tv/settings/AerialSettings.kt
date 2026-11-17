@@ -122,6 +122,7 @@ object AerialSettings {
 
     /** Null means the middle of the first row; otherwise a grid coordinate, never an app identity. */
     var homeFocusPosition by mutableStateOf<HomeFocusPosition?>(null); private set
+    var homeFocusEnabled by mutableStateOf(true); private set
 
     /** The number chosen; [Restricted.COLUMNS] in Kids and Elders mode, for bigger tiles from the sofa. */
     val homeColumns: Int get() = if (Restricted.active) Restricted.COLUMNS else chosenColumns
@@ -256,6 +257,7 @@ object AerialSettings {
         peekNextRow = prefs.getBoolean("peek_next_row", true)
         chosenColumns = prefs.getInt("home_columns", DEFAULT_HOME_COLUMNS).takeIf { it in HOME_COLUMNS } ?: DEFAULT_HOME_COLUMNS
         homeFocusPosition = HomeFocusPosition.read(prefs)
+        homeFocusEnabled = prefs.getBoolean("home_focus_enabled", true)
         clockRight = prefs.getBoolean("clock_right", false)
         largeClock = prefs.getBoolean("large_clock", false)
         clockHours = ClockHours.of(prefs.getString("clock_hours", null))
@@ -333,9 +335,18 @@ object AerialSettings {
         app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt("home_columns", columns) }
     }
 
-    fun chooseHomeFocusPosition(position: HomeFocusPosition?) {
+    fun chooseHomeFocusPosition(position: HomeFocusPosition?, enabled: Boolean = true) {
         homeFocusPosition = position
-        HomeFocusPosition.write(app.getSharedPreferences(PREFS, Context.MODE_PRIVATE), position)
+        homeFocusEnabled = enabled
+        val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        HomeFocusPosition.write(prefs, position)
+        prefs.edit { putBoolean("home_focus_enabled", enabled) }
+    }
+
+    fun toggleHomeFocusPosition(index: Int, count: Int, columns: Int = homeColumns) {
+        if (index !in 0 until count || columns <= 0) return
+        val selected = homeEntryFocusIndex(count, columns, homeFocusPosition, homeFocusEnabled)
+        chooseHomeFocusPosition(HomeFocusPosition(index / columns, index % columns), enabled = index != selected)
     }
 
     fun choosePeekNextRow(on: Boolean) {

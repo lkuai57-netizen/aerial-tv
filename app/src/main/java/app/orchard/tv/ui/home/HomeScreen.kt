@@ -298,7 +298,7 @@ fun HomeScreen(
     fun requester(key: String) = requesters.getOrPut(key) { FocusRequester() }
     val pillRequester = remember { FocusRequester() }
     val appContext = LocalContext.current
-    LaunchedEffect(AerialSettings.homeFocusPosition) { vm.onHomeEntered() }
+    LaunchedEffect(AerialSettings.homeFocusPosition, AerialSettings.homeFocusEnabled) { vm.onHomeEntered() }
     val firmwareInputPanel = remember {
         SystemProbe.tclInputPanel(appContext) != null || SystemProbe.coocaaInputPanel(appContext) ||
             SystemProbe.tianciInputPanel(appContext)
@@ -433,7 +433,8 @@ fun HomeScreen(
         resetToFirst = vm.homeResetPending,
         contentKey = apps.map { it.key },
         preferredKey = {
-            app.orchard.tv.settings.homeEntryFocusIndex(apps.size, columns, AerialSettings.homeFocusPosition)
+            app.orchard.tv.settings.homeEntryFocusIndex(apps.size, columns, AerialSettings.homeFocusPosition,
+                AerialSettings.homeFocusEnabled)
                 ?.let { apps.getOrNull(it)?.key }
         },
         focus = { key -> runCatching { requester(key).requestFocus() }.getOrDefault(false) },
@@ -993,6 +994,13 @@ fun HomeScreen(
             anchor = menu?.anchor,
             inFolder = menu?.inFolder != null,
             folders = vm.folders(),
+            defaultFocusOn = menu?.inFolder == null && apps.indexOfFirst { it.key == menu?.key } ==
+                app.orchard.tv.settings.homeEntryFocusIndex(apps.size, columns, AerialSettings.homeFocusPosition,
+                    AerialSettings.homeFocusEnabled),
+            onDefaultFocus = if (menu?.inFolder == null) { key ->
+                val index = apps.indexOfFirst { it.key == key }
+                AerialSettings.toggleHomeFocusPosition(index, apps.size, columns)
+            } else null,
             onMove = { vm.startMove(it, menu?.inFolder) },
             onHide = { key ->
                 closeMenu()
@@ -1102,7 +1110,6 @@ fun HomeScreen(
             warm = sheetWarm,
             onDismiss = { vm.overlay = Overlay.ControlCenter() },
             hiddenCount = vm.hiddenApps.size,
-            homeAppCount = apps.size,
             onHiddenApps = { vm.whenUnlocked { vm.overlay = Overlay.HiddenApps } },
             // Locking needs nothing; unlocking, the PIN where one is set.
             onHomeLock = { on ->

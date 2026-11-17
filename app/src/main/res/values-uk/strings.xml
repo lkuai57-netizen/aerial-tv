@@ -320,13 +320,6 @@
     <string name="kids_warn">Лишилося %d хв</string>
     <string name="kids_warn_break">Перерва за %d хв</string>
 
-    <string name="st_focus_position">Позиція фокуса</string>
-    <string name="st_focus_position_middle">По центру</string>
-    <string name="st_focus_position_custom">Вибрати</string>
-    <string name="st_focus_position_row">Рядок фокуса</string>
-    <string name="st_focus_position_column">Стовпець фокуса</string>
-    <string name="st_focus_position_row_value">Рядок %1$d</string>
-    <string name="st_focus_position_column_value">Стовпець %1$d</string>
-    <string name="st_focus_position_hint">Після запуску й повернення на головний екран виділяється ця позиція без відкриття застосунку. Виберіть рядок або стовпець і натискайте OK для перемикання. Зміни зберігаються автоматично.</string>
+    <string name="menu_default_focus">Позиція фокуса</string>
 </resources>
 

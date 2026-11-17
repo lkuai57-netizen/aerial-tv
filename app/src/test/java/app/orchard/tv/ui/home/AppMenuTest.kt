@@ -28,6 +28,9 @@ import app.orchard.tv.apps.AppEntry
 import app.orchard.tv.apps.CustomIcons
 import app.orchard.tv.apps.Folder
 import app.orchard.tv.apps.TileArt
+import app.orchard.tv.settings.AerialSettings
+import app.orchard.tv.settings.HomeFocusPosition
+import app.orchard.tv.settings.homeEntryFocusIndex
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Rule
@@ -48,6 +51,9 @@ class AppMenuTest {
     private lateinit var view: View
     private var anchor by mutableStateOf(Rect(800f, 130f, 940f, 220f))
     private var movedTo: String? = null
+    private var defaultOn by mutableStateOf(false)
+    private var defaultCalls = 0
+    private var bootCalls = 0
 
     @After fun close() {
         compose.runOnUiThread { host?.close() }
@@ -55,7 +61,7 @@ class AppMenuTest {
 
     private fun text(id: Int) = RuntimeEnvironment.getApplication().getString(id)
 
-    private fun mount(folders: List<Folder> = emptyList()) {
+    private fun mount(folders: List<Folder> = emptyList(), withFocusToggle: Boolean = false, inFolder: Boolean = false) {
         val context = RuntimeEnvironment.getApplication()
         CustomIcons.init(context)
         Shadows.shadowOf(context.packageManager).setSystemFeature("android.software.leanback", true)
@@ -72,11 +78,13 @@ class AppMenuTest {
                 val density = LocalDensity.current.density
                 val bounds = Rect(anchor.left * density, anchor.top * density, anchor.right * density, anchor.bottom * density)
                 Box(Modifier.size(960.dp, 540.dp)) {
-                    AppMenu(app, bounds, false, folders,
+                    AppMenu(app, bounds, inFolder, folders,
                         onMove = {}, onHide = {}, onInfo = {}, onUninstall = {}, onUnpin = {},
-                        onResetIcon = {}, onBootTarget = {}, onSourceDevice = { _, _ -> },
+                        onResetIcon = {}, onBootTarget = { bootCalls++ }, onSourceDevice = { _, _ -> },
                         onToFolder = { _, id -> movedTo = id ?: "new" }, onOutOfFolder = {},
-                        onRenameFolder = { _, _ -> }, onUngroup = {}, onDismiss = {})
+                        onRenameFolder = { _, _ -> }, onUngroup = {}, onDismiss = {},
+                        defaultFocusOn = defaultOn,
+                        onDefaultFocus = if (withFocusToggle) { _ -> defaultCalls++; defaultOn = !defaultOn } else null)
                 }
             }
             controller.windowFocusChanged(true)
@@ -136,4 +144,45 @@ class AppMenuTest {
         tap(KeyEvent.KEYCODE_DPAD_CENTER)
         assertEquals("new", movedTo)
     }
+    @Test fun defaultFocusToggleUsesTheRemoteAndDoesNotTriggerBootOpen() {
+        mount(withFocusToggle = true)
+        compose.onNodeWithText(text(R.string.menu_default_focus)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.st_off)).assertIsDisplayed()
+        repeat(6) { tap(KeyEvent.KEYCODE_DPAD_DOWN) }
+        tap(KeyEvent.KEYCODE_DPAD_CENTER)
+        assertTrue(defaultOn)
+        assertEquals(1, defaultCalls)
+        assertEquals(0, bootCalls)
+        compose.onNodeWithText(text(R.string.st_on)).assertIsDisplayed()
+        tap(KeyEvent.KEYCODE_DPAD_CENTER)
+        assertFalse(defaultOn)
+        assertEquals(2, defaultCalls)
+        assertEquals(0, bootCalls)
+        for (bounds in listOf(anchor, Rect(56f, 420f, 210f, 510f))) {
+            compose.runOnUiThread { anchor = bounds }
+            settle()
+            val rect = compose.onNodeWithText(text(R.string.menu_default_focus)).getUnclippedBoundsInRoot()
+            assertTrue(rect.top >= 24.dp && rect.bottom <= 516.dp)
+        }
+    }
+
+    @Test fun selectingAnotherSlotIsExclusiveAndTurningItOffRestoresOriginalPolicy() {
+        val context = RuntimeEnvironment.getApplication()
+        AerialSettings.init(context)
+        AerialSettings.chooseHomeFocusPosition(null)
+        assertEquals(2, homeEntryFocusIndex(10, 5, AerialSettings.homeFocusPosition, AerialSettings.homeFocusEnabled))
+        AerialSettings.toggleHomeFocusPosition(5, 10, 5)
+        assertEquals(HomeFocusPosition(1, 0), AerialSettings.homeFocusPosition)
+        assertEquals(5, homeEntryFocusIndex(10, 5, AerialSettings.homeFocusPosition, AerialSettings.homeFocusEnabled))
+        AerialSettings.toggleHomeFocusPosition(9, 10, 5)
+        assertEquals(9, homeEntryFocusIndex(10, 5, AerialSettings.homeFocusPosition, AerialSettings.homeFocusEnabled))
+        AerialSettings.toggleHomeFocusPosition(9, 10, 5)
+        assertFalse(AerialSettings.homeFocusEnabled)
+        assertNull(homeEntryFocusIndex(10, 5, AerialSettings.homeFocusPosition, AerialSettings.homeFocusEnabled))
+        AerialSettings.toggleHomeFocusPosition(0, 10, 5)
+        assertTrue(AerialSettings.homeFocusEnabled)
+        assertEquals(HomeFocusPosition(0, 0), AerialSettings.homeFocusPosition)
+    }
+
 }
+

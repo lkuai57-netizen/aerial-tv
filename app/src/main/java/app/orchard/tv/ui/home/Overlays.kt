@@ -164,6 +164,9 @@ fun AppMenu(
     onRenameFolder: (String, String) -> Unit,
     onUngroup: (String) -> Unit,
     onDismiss: () -> Unit,
+    /** True for the selected Home grid slot; no per-app preference is stored. */
+    defaultFocusOn: Boolean = false,
+    onDefaultFocus: ((String) -> Unit)? = null,
 ) {
     val visible = app != null
     val shownApp = rememberLatest(app) ?: return
@@ -233,7 +236,8 @@ fun AppMenu(
                     modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 6.dp),
                 )
                 when (page) {
-                    MenuPage.Main -> when {
+                    MenuPage.Main -> {
+                      when {
                         folder != null -> {
                             MenuRow(Glyph.Move, stringResource(R.string.menu_move), { onMove(shownApp.key) }, focusRequester = first)
                             MenuRow(Glyph.Pencil, stringResource(R.string.menu_rename_folder), { page = MenuPage.Rename }, trailing = "›")
@@ -270,6 +274,15 @@ fun AppMenu(
                                 MenuRow(Glyph.Trash, stringResource(R.string.menu_uninstall), { onUninstall(shownApp.key) }, destructive = true)
                             }
                         }
+                    }
+                      if (!inFolder && onDefaultFocus != null) {
+                          MenuRow(
+                              if (defaultFocusOn) Glyph.Check else Glyph.Move,
+                              stringResource(R.string.menu_default_focus),
+                              { onDefaultFocus(shownApp.key) },
+                              trailing = stringResource(if (defaultFocusOn) R.string.st_on else R.string.st_off),
+                          )
+                      }
                     }
                     MenuPage.Folders -> {
                         MenuRow(Glyph.Folder, stringResource(R.string.menu_new_folder), { onToFolder(shownApp.key, null) }, focusRequester = first)
@@ -444,3 +457,4 @@ fun NoticeBanner(text: String?, modifier: Modifier = Modifier, glyph: Glyph = Gl
         }
     }
 }
+

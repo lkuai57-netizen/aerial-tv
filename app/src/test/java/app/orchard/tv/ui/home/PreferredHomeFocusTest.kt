@@ -92,6 +92,7 @@ class PreferredHomeFocusTest {
     }
 
     @Test fun missingSlotsAndEmptyListsUseOriginalFallback() {
+        assertNull(homeEntryFocusIndex(5, 5, null, enabled = false))
         assertNull(homeEntryFocusIndex(0, 5, null))
         assertNull(homeEntryFocusIndex(5, 5, HomeFocusPosition(1, 0)))
         assertNull(homeEntryFocusIndex(8, 5, HomeFocusPosition(1, 4)))

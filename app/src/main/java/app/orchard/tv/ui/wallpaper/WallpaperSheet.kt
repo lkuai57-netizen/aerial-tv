@@ -128,8 +128,6 @@ fun WallpaperSheet(
     onSettled: (Boolean) -> Unit = {},
     /** Draw the closed sheet once, nearly clear, so that its first opening is not its first draw (HomeScreen). */
     warm: Boolean = false,
-    /** Visible Home tiles, for choosing a real grid position without rearranging them. */
-    homeAppCount: Int = 0,
 ) {
     val context = LocalContext.current
     var phoneUrl by remember { mutableStateOf<String?>(null) }
@@ -284,7 +282,6 @@ fun WallpaperSheet(
                         listOf(FocusStyle.HighContrast to R.string.st_focus_high, FocusStyle.Standard to R.string.st_focus_standard),
                         AerialSettings.focusStyle, AerialSettings::chooseFocusStyle, first = true,
                     )
-                    HomeFocusPositionSettings(homeAppCount, note)
                     Choices(
                         R.string.st_sounds,
                         stringResource(if (AerialSettings.uiSounds == UiSounds.Tv) R.string.st_sounds_tv_hint else R.string.st_sounds_hint),
@@ -650,42 +647,6 @@ private fun <T> Choices(
     }
 }
 
-/** Uses the existing settings controls; only a row/column is saved. */
-@Composable
-internal fun HomeFocusPositionSettings(appCount: Int, note: (String?) -> Unit = {}) {
-    val columns = AerialSettings.homeColumns
-    val position = AerialSettings.homeFocusPosition
-    val hint = stringResource(R.string.st_focus_position_hint)
-    val rows = ((appCount + columns - 1) / columns).coerceAtLeast(1)
-    val shownRow = (position?.row ?: 0).coerceIn(0, rows - 1)
-    val rowSize = (appCount - shownRow * columns).coerceIn(1, columns)
-    val shownColumn = (position?.column ?: ((minOf(appCount, columns) - 1).coerceAtLeast(0) / 2))
-        .coerceIn(0, rowSize - 1)
-    Choices(
-        R.string.st_focus_position, hint, note,
-        listOf(false to R.string.st_focus_position_middle, true to R.string.st_focus_position_custom),
-        position != null,
-        { custom -> AerialSettings.chooseHomeFocusPosition(if (custom)
-            app.orchard.tv.settings.HomeFocusPosition(shownRow, shownColumn) else null) },
-    )
-    if (position != null) {
-        SettingRow(R.string.st_focus_position_row, hint, note) {
-            ActionChip(stringResource(R.string.st_focus_position_row_value, shownRow + 1), Glyph.ChevronRight) {
-                val nextRow = (shownRow + 1) % rows
-                val nextSize = (appCount - nextRow * columns).coerceIn(1, columns)
-                AerialSettings.chooseHomeFocusPosition(app.orchard.tv.settings.HomeFocusPosition(
-                    nextRow, shownColumn.coerceAtMost(nextSize - 1)))
-            }
-        }
-        SettingRow(R.string.st_focus_position_column, hint, note) {
-            ActionChip(stringResource(R.string.st_focus_position_column_value, shownColumn + 1), Glyph.ChevronRight) {
-                AerialSettings.chooseHomeFocusPosition(app.orchard.tv.settings.HomeFocusPosition(
-                    shownRow, (shownColumn + 1) % rowSize))
-            }
-        }
-    }
-}
-
 /** Parental PIN on or off; either way goes through the PIN pad (issue #10). */
 @Composable
 private fun PinChoice(onPin: (on: Boolean) -> Unit, onFocused: () -> Unit) {
@@ -831,4 +792,3 @@ private val SheetCorner = 30.dp
  * three full-screen layers and the tiles that nobody sees (Xiaomi MiTV-MFTR0).
  */
 val SheetCovers = SheetHeight - SheetCorner
-
