@@ -1,0 +1,8 @@
+// Collect the full report for comparison with the pinned upstream source.
+// Used ONLY for the report task. Release assembly retains its normal fatal checks.
+allprojects {
+    plugins.withId("com.android.application") {
+        android.lint.abortOnError = false
+    }
+}
+

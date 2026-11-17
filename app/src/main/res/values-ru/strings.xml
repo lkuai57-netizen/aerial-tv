@@ -319,4 +319,14 @@
     <string name="kids_blocked">«%s» здесь недоступно</string>
     <string name="kids_warn">Осталось %d мин</string>
     <string name="kids_warn_break">Перерыв через %d мин</string>
+
+    <string name="st_focus_position">Позиция фокуса</string>
+    <string name="st_focus_position_middle">По центру</string>
+    <string name="st_focus_position_custom">Выбрать</string>
+    <string name="st_focus_position_row">Строка фокуса</string>
+    <string name="st_focus_position_column">Столбец фокуса</string>
+    <string name="st_focus_position_row_value">Строка %1$d</string>
+    <string name="st_focus_position_column_value">Столбец %1$d</string>
+    <string name="st_focus_position_hint">При запуске и возврате на главный экран выделяется эта позиция без открытия приложения. Выберите строку или столбец и нажимайте OK для переключения. Изменения сохраняются автоматически.</string>
 </resources>
+

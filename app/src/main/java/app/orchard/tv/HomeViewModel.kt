@@ -137,6 +137,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
      * since a focus request made while another app is in front is lost.
      */
     var homeResetPending by mutableStateOf(false)
+    /** A new Home entry, separate from repainting the grid or closing an in-app overlay. */
+    var homeEntry by mutableLongStateOf(0L)
+        private set
+    fun onHomeEntered() { homeEntry++ }
 
     /** When a key, a touch or coming back to the front last reset the idle timer (uptime ms). */
     var lastInputAt by mutableLongStateOf(0L)
@@ -693,8 +697,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun endMove() { movingKey = null; movingInFolder = null }
 
     /**
-     * Home was pressed. On Home itself focus goes back to the top row, as on tvOS; coming back
-     * from an app opened from the grid, focus stays on that app's tile.
+     * Home was pressed. Prefer the selected grid position on entry; without it, preserve the
+     * original first-tile / returning-app policy indicated by resetFocus.
      */
     fun onHomePressed(resetFocus: Boolean = true) {
         screensaverVisible = false
@@ -702,6 +706,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         overlay = Overlay.None
         movingKey = null
         movingInFolder = null
+        onHomeEntered()
         if (resetFocus) homeResetPending = true
     }
 
@@ -712,4 +717,5 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         if (AppCatalog.layout === layoutOps) AppCatalog.layout = null
     }
 }
+
 

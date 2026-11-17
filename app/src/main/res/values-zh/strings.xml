@@ -326,4 +326,14 @@
     <string name="kids_blocked">「%s」不在这个模式里</string>
     <string name="kids_warn">还能看 %d 分钟</string>
     <string name="kids_warn_break">%d 分钟后休息一下</string>
+
+    <string name="st_focus_position">默认焦点位置</string>
+    <string name="st_focus_position_middle">中间</string>
+    <string name="st_focus_position_custom">自选位置</string>
+    <string name="st_focus_position_row">焦点所在行</string>
+    <string name="st_focus_position_column">焦点所在列</string>
+    <string name="st_focus_position_row_value">第 %1$d 行</string>
+    <string name="st_focus_position_column_value">第 %1$d 列</string>
+    <string name="st_focus_position_hint">开机或从其他应用返回桌面时，只选中此位置，不自动打开应用。选择行或列后，按确定键依次切换，自动保存。</string>
 </resources>
+

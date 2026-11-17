@@ -298,6 +298,7 @@ fun HomeScreen(
     fun requester(key: String) = requesters.getOrPut(key) { FocusRequester() }
     val pillRequester = remember { FocusRequester() }
     val appContext = LocalContext.current
+    LaunchedEffect(AerialSettings.homeFocusPosition) { vm.onHomeEntered() }
     val firmwareInputPanel = remember {
         SystemProbe.tclInputPanel(appContext) != null || SystemProbe.coocaaInputPanel(appContext) ||
             SystemProbe.tianciInputPanel(appContext)
@@ -424,19 +425,31 @@ fun HomeScreen(
         runCatching { requester(app.key).requestFocus() }
     }
 
-    // First focus once the apps are in; afterwards, put focus back wherever it was when an overlay closes.
-    LaunchedEffect(vm.loaded, overlay) {
-        if (!vm.loaded || overlay != Overlay.None) return@LaunchedEffect
-        withFrameNanos { }
-        val wanted = focusAfterOverlay
-        focusAfterOverlay = null
-        if (wanted != null) { focusedKey = wanted; pillFocused = false }
-        val index = apps.indexOfFirst { it.key == focusedKey }
-        // A tile that went while the overlay was up (hidden, put in a folder, a folder ungrouped)
-        // leaves focus where it was.
-        if (pillFocused && focusedKey != null) runCatching { pillRequester.requestFocus() }
-        else focusApp(if (index >= 0) index else if (wanted != null) indexAfterOverlay else lastFocusedIndex)
-    }
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    val entryFocusPending = HomeFocusEffect(
+        ready = vm.loaded && apps.isNotEmpty() && vm.resumed && windowFocused &&
+            gridEnabled && moving == null && !vm.screensaverVisible,
+        entry = vm.homeEntry,
+        resetToFirst = vm.homeResetPending,
+        preferredKey = {
+            app.orchard.tv.settings.homeEntryFocusIndex(apps.size, columns, AerialSettings.homeFocusPosition)
+                ?.let { apps.getOrNull(it)?.key }
+        },
+        focus = { key -> runCatching { requester(key).requestFocus() }.getOrDefault(false) },
+        restore = { resetToFirst ->
+            val wanted = focusAfterOverlay
+            focusAfterOverlay = null
+            if (wanted != null) { focusedKey = wanted; pillFocused = false }
+            val index = apps.indexOfFirst { it.key == focusedKey }
+            when {
+                resetToFirst -> { dragged = false; focusApp(0) }
+                pillFocused && focusedKey != null -> runCatching { pillRequester.requestFocus() }
+                else -> focusApp(if (index >= 0) index else if (wanted != null) indexAfterOverlay else lastFocusedIndex)
+            }
+        },
+        onEntryFocused = { focusAfterOverlay = null; pillFocused = false; dragged = false },
+        onResetHandled = { vm.homeResetPending = false },
+    )
     // A folder whose last app left closes.
     LaunchedEffect(overlay, vm.folderApps) {
         val open = (overlay as? Overlay.Folder)?.id ?: (overlay as? Overlay.AppMenu)?.inFolder ?: return@LaunchedEffect
@@ -444,7 +457,7 @@ fun HomeScreen(
     }
     // An app vanished from under the focus (uninstalled or hidden): take its neighbour.
     LaunchedEffect(apps) {
-        if (focusedKey != null && apps.none { it.key == focusedKey } && overlay == Overlay.None) {
+        if (!entryFocusPending && focusedKey != null && apps.none { it.key == focusedKey } && gridEnabled) {
             withFrameNanos { }
             focusApp(lastFocusedIndex)
         }
@@ -456,15 +469,6 @@ fun HomeScreen(
         val key = moving ?: return@LaunchedEffect
         withFrameNanos { }
         runCatching { requester(key).requestFocus() }
-    }
-    val windowFocused = LocalWindowInfo.current.isWindowFocused
-    LaunchedEffect(windowFocused, vm.homeResetPending, vm.loaded) {
-        if (windowFocused && vm.homeResetPending && vm.loaded) {
-            withFrameNanos { }
-            dragged = false
-            focusApp(0)
-            vm.homeResetPending = false
-        }
     }
 
     BackHandler(enabled = overlay == Overlay.None && moving == null) {
@@ -923,14 +927,8 @@ fun HomeScreen(
                         compositingStrategy = CompositingStrategy.ModulateAlpha
                     },
                 onFocused = { gained ->
-                    // The window hands its first focus to the top-most control; the top row is where Home starts.
-                    if (gained) {
-                        if (focusedKey == null) {
-                            if (apps.isNotEmpty()) focusApp(0)
-                        } else {
-                            pillFocused = true
-                        }
-                    }
+                    // Initial focus belongs to HomeFocusEffect once tiles and the window are ready.
+                    if (gained && focusedKey != null) pillFocused = true
                 },
                 onClick = {
                     // A tap focuses the pill and opens Control Center in the same frame, before
@@ -1108,6 +1106,7 @@ fun HomeScreen(
             warm = sheetWarm,
             onDismiss = { vm.overlay = Overlay.ControlCenter() },
             hiddenCount = vm.hiddenApps.size,
+            homeAppCount = apps.size,
             onHiddenApps = { vm.whenUnlocked { vm.overlay = Overlay.HiddenApps } },
             // Locking needs nothing; unlocking, the PIN where one is set.
             onHomeLock = { on ->
@@ -1145,3 +1144,4 @@ fun HomeScreen(
         )
     }
 }
+

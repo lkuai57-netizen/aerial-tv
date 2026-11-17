@@ -1010,6 +1010,7 @@ class MainActivity : ComponentActivity() {
 
     /** What onResume does once the user is unlocked; also run by a start that was locked before. */
     private fun resumeWork() {
+        vm.onHomeEntered()
         vm.resumed = true
         CecSwitch.register(this)
         if (!minuteReceiverOn) {
@@ -1459,3 +1460,4 @@ class MainActivity : ComponentActivity() {
         @Volatile var dreamWokeKey = -1
     }
 }
+

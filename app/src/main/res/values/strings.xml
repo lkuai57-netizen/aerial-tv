@@ -327,4 +327,14 @@
     <string name="kids_blocked">%s is not allowed here</string>
     <string name="kids_warn">%d min of TV left</string>
     <string name="kids_warn_break">A break in %d min</string>
+
+    <string name="st_focus_position">Default focus position</string>
+    <string name="st_focus_position_middle">Middle</string>
+    <string name="st_focus_position_custom">Custom</string>
+    <string name="st_focus_position_row">Focus row</string>
+    <string name="st_focus_position_column">Focus column</string>
+    <string name="st_focus_position_row_value">Row %1$d</string>
+    <string name="st_focus_position_column_value">Column %1$d</string>
+    <string name="st_focus_position_hint">On startup and return to Home, select this position without opening the app. Select a row or column and press OK to cycle; changes are saved automatically.</string>
 </resources>
+

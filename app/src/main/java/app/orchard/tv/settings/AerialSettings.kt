@@ -120,6 +120,9 @@ object AerialSettings {
      */
     private var chosenColumns by mutableIntStateOf(DEFAULT_HOME_COLUMNS)
 
+    /** Null means the middle of the first row; otherwise a grid coordinate, never an app identity. */
+    var homeFocusPosition by mutableStateOf<HomeFocusPosition?>(null); private set
+
     /** The number chosen; [Restricted.COLUMNS] in Kids and Elders mode, for bigger tiles from the sofa. */
     val homeColumns: Int get() = if (Restricted.active) Restricted.COLUMNS else chosenColumns
 
@@ -252,6 +255,7 @@ object AerialSettings {
         oneRowHome = prefs.getBoolean("one_row_home", true)
         peekNextRow = prefs.getBoolean("peek_next_row", true)
         chosenColumns = prefs.getInt("home_columns", DEFAULT_HOME_COLUMNS).takeIf { it in HOME_COLUMNS } ?: DEFAULT_HOME_COLUMNS
+        homeFocusPosition = HomeFocusPosition.read(prefs)
         clockRight = prefs.getBoolean("clock_right", false)
         largeClock = prefs.getBoolean("large_clock", false)
         clockHours = ClockHours.of(prefs.getString("clock_hours", null))
@@ -327,6 +331,11 @@ object AerialSettings {
         if (columns !in HOME_COLUMNS) return
         chosenColumns = columns
         app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt("home_columns", columns) }
+    }
+
+    fun chooseHomeFocusPosition(position: HomeFocusPosition?) {
+        homeFocusPosition = position
+        HomeFocusPosition.write(app.getSharedPreferences(PREFS, Context.MODE_PRIVATE), position)
     }
 
     fun choosePeekNextRow(on: Boolean) {
@@ -438,3 +447,4 @@ object AerialSettings {
     }
 
 }
+
