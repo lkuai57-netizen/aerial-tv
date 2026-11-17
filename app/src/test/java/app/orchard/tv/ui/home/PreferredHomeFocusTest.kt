@@ -108,7 +108,7 @@ class PreferredHomeFocusTest {
             controller.get().setContent {
                 view = LocalView.current
                 key(generation) {
-                    HomeFocusEffect(ready && apps.isNotEmpty(), entry, reset,
+                    HomeFocusEffect(ready && apps.isNotEmpty(), entry, reset, apps.map { it.key },
                         preferredKey = { homeEntryFocusIndex(apps.size, 5, position)?.let { apps[it].key } },
                         focus = { requests.getValue(it).requestFocus() },
                         restore = { first ->

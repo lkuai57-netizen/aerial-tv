@@ -15,6 +15,7 @@ internal fun HomeFocusEffect(
     ready: Boolean,
     entry: Long,
     resetToFirst: Boolean,
+    contentKey: Any?,
     preferredKey: () -> String?,
     focus: (String) -> Boolean,
     restore: (Boolean) -> Unit,
@@ -28,7 +29,7 @@ internal fun HomeFocusEffect(
     val focusedNow by rememberUpdatedState(onEntryFocused)
     val resetNow by rememberUpdatedState(onResetHandled)
     val pending = handledEntry != entry || resetToFirst
-    LaunchedEffect(ready, entry, resetToFirst) {
+    LaunchedEffect(ready, entry, resetToFirst, contentKey) {
         if (!ready) return@LaunchedEffect
         withFrameNanos { }
         if (pending) {

@@ -426,11 +426,12 @@ fun HomeScreen(
     }
 
     val windowFocused = LocalWindowInfo.current.isWindowFocused
-    val entryFocusPending = HomeFocusEffect(
+    HomeFocusEffect(
         ready = vm.loaded && apps.isNotEmpty() && vm.resumed && windowFocused &&
             gridEnabled && moving == null && !vm.screensaverVisible,
         entry = vm.homeEntry,
         resetToFirst = vm.homeResetPending,
+        contentKey = apps.map { it.key },
         preferredKey = {
             app.orchard.tv.settings.homeEntryFocusIndex(apps.size, columns, AerialSettings.homeFocusPosition)
                 ?.let { apps.getOrNull(it)?.key }
@@ -455,13 +456,8 @@ fun HomeScreen(
         val open = (overlay as? Overlay.Folder)?.id ?: (overlay as? Overlay.AppMenu)?.inFolder ?: return@LaunchedEffect
         if (vm.folderApps[open].isNullOrEmpty()) vm.overlay = Overlay.None
     }
-    // An app vanished from under the focus (uninstalled or hidden): take its neighbour.
+    // App removal is restored by HomeFocusEffect; while moving, follow the app to its new slot.
     LaunchedEffect(apps) {
-        if (!entryFocusPending && focusedKey != null && apps.none { it.key == focusedKey } && gridEnabled) {
-            withFrameNanos { }
-            focusApp(lastFocusedIndex)
-        }
-        // While moving, focus follows the app to its new slot.
         moving?.let { withFrameNanos { }; runCatching { requester(it).requestFocus() } }
     }
     // Moving starts from the menu, which is still on screen for a frame: focus the app once it is gone.
