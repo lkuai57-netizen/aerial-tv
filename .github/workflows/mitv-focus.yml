@@ -1,0 +1,101 @@
+name: MiTV focus candidate
+on:
+  push:
+    branches: [mitv-focus-position]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mitv-focus-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: candidate
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: d5a347302e3499771045f85a6e0a8317881525cf
+          path: baseline
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Baseline lint
+        working-directory: baseline
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
+          chmod +x gradlew
+          ./gradlew --no-daemon --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" -I ../candidate/tools/ci-lint-report.gradle :app:lintStandardRelease
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: baseline-lint
+          path: baseline/app/build/reports/lint-results-standardRelease.xml
+          retention-days: 14
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Test and build release APK
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
+          chmod +x gradlew
+          ./gradlew --no-daemon --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" -PmitvHome=true :app:testStandardReleaseUnitTest :app:assembleStandardRelease
+      - name: Full lint
+        run: |
+          ./gradlew --no-daemon --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" -PmitvHome=true -I tools/ci-lint-report.gradle :app:lintStandardRelease
+      - name: Verify and package
+        run: |
+          mkdir -p deliverable
+          cp app/build/outputs/apk/standard/release/app-standard-release.apk deliverable/aerial-mitv-focus.apk
+          APK=deliverable/aerial-mitv-focus.apk
+          ANALYZER="${ANDROID_HOME}/cmdline-tools/latest/bin/apkanalyzer"
+          test "$("$ANALYZER" manifest application-id "$APK")" = com.ts.launcher
+          test "$("$ANALYZER" manifest version-code "$APK")" = 148
+          "$ANALYZER" manifest print "$APK" > deliverable/manifest.xml
+          "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" > deliverable/signature.txt
+          unzip -p "$APK" assets/aerial-dm/28.dm > deliverable/aerial-mitv-focus.dm
+          python3 tools/verify-mitv-apk.py "$APK"
+          cp docs/MITV-FOCUS.md deliverable/README.md
+          cp "${ANDROID_HOME}/build-tools/36.0.0/lib/apksigner.jar" deliverable/apksigner.jar
+          git rev-parse HEAD > deliverable/commit.txt
+          cd deliverable
+          sha256sum aerial-mitv-focus.apk aerial-mitv-focus.dm > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: focus-test-reports
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+            app/build/reports/lint-results-standardRelease.*
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: aerial-mitv-focus
+          path: deliverable/
+          retention-days: 30
+          if-no-files-found: error
+  lint-regression:
+    needs: [baseline, verify]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          path: reports
+      - run: python3 tools/compare-lint.py reports/baseline-lint/lint-results-standardRelease.xml reports/focus-test-reports/reports/lint-results-standardRelease.xml

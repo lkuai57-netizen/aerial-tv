@@ -10,17 +10,22 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Opt-in identity for the MiTV-MTEQ0 Home allowlist. The Kotlin namespace stays unchanged.
+val mitvHome = providers.gradleProperty("mitvHome").getOrElse("false").toBooleanStrict()
+
 android {
     namespace = "app.orchard.tv"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "app.orchard.tv"
+        applicationId = if (mitvHome) "com.ts.launcher" else "app.orchard.tv"
         // Android 5.0. Compose 1.10 and later need 6.0, so the Compose BOM below stays on 1.9.
         minSdk = 21
         targetSdk = 34
-        versionCode = 147
-        versionName = "1.99-focus1"
+        versionCode = if (mitvHome) 148 else 147
+        versionName = if (mitvHome) "1.99-mitv-focus1" else "1.99-focus1"
+        buildConfigField("boolean", "MITV_HOME", mitvHome.toString())
+        resValue("string", "revival_account_type", applicationId!!)
         // `./gradlew -Pdiag ...`: a build for one reporter's TV whose logcat shows no app lines;
         // see system/DiagLog.kt.
         val diag = project.hasProperty("diag")
@@ -175,4 +180,3 @@ androidComponents {
         variant.sources.assets?.addGeneratedSourceDirectory(task, DexMetadataAssets::outputDir)
     }
 }
-

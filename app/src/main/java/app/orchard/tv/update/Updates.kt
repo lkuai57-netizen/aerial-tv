@@ -89,6 +89,12 @@ object Updates {
         started = true
         appContext = context.applicationContext
         prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        // This separately signed test package has no compatible upstream update feed.
+        if (BuildConfig.MITV_HOME) {
+            available = null
+            notes = emptyList()
+            return
+        }
         available = prefs.getString("latest", null)?.takeIf { newer(it, current) }
         checker = UpdateCheck(
             scope = scope,

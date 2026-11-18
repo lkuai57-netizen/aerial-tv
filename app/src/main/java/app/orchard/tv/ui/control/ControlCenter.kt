@@ -601,7 +601,12 @@ private fun SetupPage(vm: HomeViewModel, takeFocus: Boolean, onOpen: (android.co
     var qr by remember { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(Unit) {
         val ip = PhoneServer.lanAddress(context)
-        val url = "https://aerial.qust.me/update/#setup=1&v=${Updates.current}&f=${BuildConfig.FLAVOR}" + (ip?.let { "&tv=$it" } ?: "")
+        val url = if (BuildConfig.MITV_HOME) {
+            // Upstream setup commands target app.orchard.tv, not this opt-in package.
+            "https://github.com/lkuai57-netizen/aerial-tv/blob/mitv-focus-position/docs/MITV-FOCUS.md"
+        } else {
+            "https://aerial.qust.me/update/#setup=1&v=${Updates.current}&f=${BuildConfig.FLAVOR}" + (ip?.let { "&tv=$it" } ?: "")
+        }
         qr = withContext(Dispatchers.Default) { PhoneServer.qr(url).asImageBitmap() }
     }
     Column {
